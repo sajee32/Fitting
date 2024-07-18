@@ -1,0 +1,63 @@
+% Load the PSD MATLAB .fig file directly generated from Translyser
+fig = openfig('File location'); % Replace with your actual figure path
+
+% Extract frequency (XData) and power (YData) from the plot object
+lineHandle = findobj(fig, 'Type', 'line');  % Find line objects in the figure
+frequency = get(lineHandle, 'XData');
+power = get(lineHandle, 'YData');
+
+% Convert power units from nA^2 to A^2 
+power = 10^(-18) * power; % Assuming power data is in nA^2, convert to A^2
+
+% Compute logarithms for original data
+log_frequency = log10(frequency);
+log_power = log10(power);
+
+% Filter data for frequencies between 1 Hz and 100 Hz
+indices = frequency >= 1 & frequency <= 100;
+filtered_frequency = frequency(indices);
+filtered_power = power(indices);
+
+% Compute logarithms for filtered data
+log_filtered_frequency = log10(filtered_frequency);
+log_filtered_power = log10(filtered_power);
+
+% Perform linear fit: log(P) = log(A) + (1 + a) * log(1/f)
+x = log_filtered_frequency; % log(1/f)
+y = log_filtered_power;    % log(P)
+
+% Perform linear fit
+coefficients = polyfit(x, y, 1);
+slope = coefficients(1);   % This is (1 + a)
+intercept = coefficients(2); % This is log(A)
+
+% Plot 1: Original PSD
+figure;
+loglog(frequency, power, '.'); % Plot original PSD data in log-log scale
+xlabel('Frequency (Hz)');
+ylabel('Power (A^2/Hz)');
+title('Original Power Spectral Density (PSD)');
+grid on;
+
+% Plot 2: Filtered PSD
+figure;
+loglog(filtered_frequency, filtered_power, '.'); % Plot filtered PSD data in log-log scale
+xlabel('Frequency (Hz)');
+ylabel('Power (A^2/Hz)');
+title('Filtered Power Spectral Density (PSD) - Frequencies from 1 Hz to 100 Hz');
+grid on;
+
+% Plot 3: Fitted Data
+figure;
+loglog(filtered_frequency, filtered_power, '.'); % Plot original data points
+hold on;
+loglog(filtered_frequency, 10.^(polyval(coefficients, x)), 'r-', 'LineWidth', 2); % Plot fitted line
+xlabel('Frequency (Hz)');
+ylabel('Power (A^2/Hz)');
+title('Linear Fit of Log-Log PSD Data');
+legend('Original Data', 'Linear Fit', 'Location', 'Best');
+grid on;
+
+% Display the fitted parameters
+disp(['Intercept (log(A)): ', num2str(intercept)]);
+disp(['Slope (1 + a): ', num2str(slope)]);
